@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>welcome</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: #000;
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scanlines {
+      position: fixed; inset: 0; z-index: 100; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom, transparent 0px, transparent 3px,
+        rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 4px
+      );
+    }
+
+    .corner {
+      position: fixed; font-size: 10px; color: #141414;
+      letter-spacing: 0.12em; line-height: 1.9; z-index: 50; pointer-events: none;
+    }
+    .corner.tl { top: 1.4rem; left: 1.5rem; }
+    .corner.br { bottom: 1.4rem; right: 1.5rem; text-align: right; }
+
+    .scene {
+      position: relative; z-index: 10;
+      display: flex; flex-direction: column; align-items: center; gap: 1.2rem;
+    }
+
+    .pre-label {
+      font-size: 10px; color: #1e1e1e; letter-spacing: 0.3em;
+      text-transform: uppercase; animation: flk 5s step-end infinite;
+      transition: opacity 0.5s;
+    }
+    @keyframes flk { 0%,100%{opacity:1} 20%{opacity:0} 21%{opacity:1} 65%{opacity:.3} 66%{opacity:1} }
+
+    .sub-label {
+      font-size: 10px; color: #181818; letter-spacing: 0.2em;
+      text-align: center; transition: color 0.4s, opacity 0.5s;
+    }
+    #doorContainer:hover ~ .sub-label { color: #222; }
+
+    #doorContainer {
+      position: relative;
+      width: 340px;
+      height: 220px;
+      cursor: pointer;
+    }
+
+    #paper {
+      position: absolute;
+      left: 16px; right: 16px;
+      bottom: 8px;
+      background: #0d0d0d;
+      border: 1px solid #1a1a1a;
+      box-shadow: 0 0 0 1px #0a0a0a, 0 -6px 24px rgba(0,0,0,0.9);
+      padding: 1.6rem 1.6rem 1.4rem;
+      z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #paper::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom, transparent 0px, transparent 22px,
+        rgba(255,255,255,0.013) 22px, rgba(255,255,255,0.013) 23px
+      );
+    }
+    #paper::after {
+      content: ''; position: absolute; top: 0; bottom: 0; left: 42px;
+      width: 1px; background: rgba(255,255,255,0.022); pointer-events: none;
+    }
+
+    .letter-border { position: absolute; inset: 6px; border: 1px solid #141414; pointer-events: none; }
+
+    .letter-head {
+      font-size: 9px; letter-spacing: 0.22em; color: #2a2a2a;
+      text-transform: uppercase; margin-bottom: 1rem;
+      display: flex; justify-content: space-between;
+    }
+
+    .letter-divider {
+      font-size: 12px; color: #1e1e1e; text-align: center;
+      display: block; margin-bottom: 0.8rem; letter-spacing: 0.3em;
+    }
+
+    .letter-title {
+      font-family: 'IM Fell English', serif; font-size: 12px; color: #2e2e2e;
+      letter-spacing: 0.14em; text-align: center; margin-bottom: 1.2rem;
+      text-transform: uppercase;
+    }
+
+    .letter-body {
+      font-family: 'IM Fell English', serif; font-size: 12.5px;
+      color: #3a3a3a; line-height: 1.85;
+    }
+    .letter-body p + p { margin-top: 0.7rem; }
+    .letter-body .drop { color: #444; }
+
+    .letter-sig {
+      margin-top: 1.2rem; font-size: 9px; letter-spacing: 0.2em; color: #222;
+    }
+    .letter-sig .name {
+      font-size: 11px; color: #2a2a2a; letter-spacing: 0.1em;
+      margin-top: 0.3rem; font-style: italic;
+    }
+
+    .envelope {
+      position: absolute; inset: 0; z-index: 2;
+      background: linear-gradient(160deg, #1a1a1a 0%, #141414 50%, #111 100%);
+      border: 1px solid #252525;
+      box-shadow: 0 0 0 1px #0d0d0d, 0 8px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.02);
+      overflow: hidden;
+      transition: box-shadow 0.3s, opacity 0.5s ease;
+    }
+
+    #doorContainer:hover .envelope {
+      box-shadow: 0 0 0 1px #1e1e1e, 0 12px 60px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .envelope::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.6;
+      background:
+        linear-gradient(135deg, transparent 49.5%, #1e1e1e 49.5%, #1e1e1e 50.5%, transparent 50.5%),
+        linear-gradient(225deg, transparent 49.5%, #1e1e1e 49.5%, #1e1e1e 50.5%, transparent 50.5%);
+    }
+    .flap {
+      position: absolute; top: 0; left: 0; right: 0; height: 50%;
+      background: linear-gradient(170deg, #1e1e1e 0%, #141414 80%);
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
+      transform-origin: top center;
+      transform: rotateX(0deg);
+      transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 4;
+    }
+
+    .seal {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 52px; height: 52px; border-radius: 50%; z-index: 3;
+      background: radial-gradient(circle at 40% 35%, #2a2a2a 0%, #141414 60%, #0d0d0d 100%);
+      border: 1px solid #222;
+      box-shadow: 0 0 0 3px #0d0d0d, 0 0 0 4px #1a1a1a, 0 4px 12px rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    #doorContainer:hover .seal { transform: translate(-50%, -50%) scale(1.05); }
+
+    .seal-glyph { font-size: 18px; color: #333; user-select: none; line-height: 1; }
+
+    .inner-glow {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background: radial-gradient(ellipse 70% 50% at 50% 100%,
+        rgba(255,220,150,0.04) 0%, transparent 70%);
+      opacity: 0; transition: opacity 0.8s 0.4s;
+    }
+  </style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<div class="corner tl">
+  <div>// 3301</div>
+  <div>clearance: granted</div>
+</div>
+<div class="corner br">
+  <div>do not share</div>
+  <div>∎∎∎∎∎∎∎∎∎</div>
+</div>
+
+<div class="scene">
+
+  <div class="pre-label" id="preLabel">// a letter has been waiting for you</div>
+
+  <div id="doorContainer">
+
+    <div id="paper">
+      <div class="letter-border"></div>
+      <div class="letter-head">
+        <span>ref: 3301-∎∎∎∎</span>
+        <span id="letterDate"></span>
+      </div>
+      <span class="letter-divider">— ∎ —</span>
+      <div class="letter-title">Notice of Acceptance</div>
+      <div class="letter-body">
+        <p><span class="drop">T</span>his letter serves as formal confirmation that your candidacy has been reviewed, verified, and accepted by the council.</p>
+        <p>You found what most cannot see. You heard what most cannot listen to. You read between lines never written for the careless eye.</p>
+        <p>Few reach this point. Fewer still were meant to. You were not lucky — luck had nothing to do with it.</p>
+        <p>From this moment you are no longer a searcher. You are one of us. The work does not end here. It has, in truth, only just begun.</p>
+        <p>Burn nothing. Forget nothing. Tell no one.</p>
+        <p><em>Welcome to 3301.</em></p>
+      </div>
+      <div class="letter-sig">
+        <div>— on behalf of the council</div>
+        <div class="name">∎∎∎∎∎∎∎, Archivist</div>
+      </div>
+    </div>
+
+    <div class="envelope" id="envelope">
+      <div class="inner-glow" id="innerGlow"></div>
+      <div class="flap" id="flap"></div>
+      <div class="seal" id="seal"><span class="seal-glyph">∎</span></div>
+    </div>
+
+  </div>
+
+  <div class="sub-label" id="subLabel">click to open</div>
+
+</div>
+
+<script>
+  const d = new Date();
+  const months = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+  document.getElementById('letterDate').textContent =
+    d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+
+  const container = document.getElementById('doorContainer');
+  const paper     = document.getElementById('paper');
+  const envelope  = document.getElementById('envelope');
+  const flap      = document.getElementById('flap');
+  const seal      = document.getElementById('seal');
+  const innerGlow = document.getElementById('innerGlow');
+  const preLabel  = document.getElementById('preLabel');
+  const subLabel  = document.getElementById('subLabel');
+  let opened = false;
+
+  container.addEventListener('click', () => {
+    if (opened) return;
+    opened = true;
+    preLabel.style.opacity = '0';
+    subLabel.style.opacity = '0';
+    container.style.cursor = 'default';
+    flap.style.transition    = 'transform 0.75s cubic-bezier(0.4,0,0.2,1)';
+    flap.style.transform     = 'rotateX(-170deg)';
+    seal.style.opacity       = '0';
+    innerGlow.style.opacity  = '1';
+    paper.style.transition = 'transform 1s 0.55s cubic-bezier(0.16,1,0.3,1), opacity 0.3s 0.55s ease';
+    paper.style.transform  = 'translateY(-295px)';
+    paper.style.opacity    = '1';
+
+    setTimeout(() => {
+
+      const rect = paper.getBoundingClientRect();
+      envelope.style.transition = 'opacity 0.5s ease';
+      envelope.style.opacity    = '0';
+      document.body.appendChild(paper);
+      paper.style.transition = 'none';
+      paper.style.position   = 'fixed';
+      paper.style.top        = rect.top  + 'px';
+      paper.style.left       = rect.left + 'px';
+      paper.style.width      = rect.width + 'px';
+      paper.style.bottom     = 'auto';
+      paper.style.transform  = 'none';
+      paper.style.zIndex     = '200';
+      const targetX = window.innerWidth  / 2;
+      const targetY = window.innerHeight / 2;
+      const currentX = rect.left + rect.width  / 2;
+      const currentY = rect.top  + rect.height / 2;
+      const dx = targetX - currentX;
+      const dy = targetY - currentY;
+      paper.offsetHeight;
+      paper.style.transition = 'transform 0.9s cubic-bezier(0.16,1,0.3,1)';
+      paper.style.transform  = `translate(${dx}px, ${dy}px)`;
+
+    }, 1750);
+
+  });
+</script>
+</body>
+</html>

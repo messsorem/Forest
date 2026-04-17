@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>the cross-roads</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: #000;
+      color: #e8e8e8;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .wrap {
+      width: min(600px, calc(100% - 3rem));
+      padding: 2rem 0;
+      animation: appear 1.2s ease both;
+    }
+
+    @keyframes appear {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .seq {
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 0.2em;
+      margin-bottom: 3rem;
+    }
+
+    .riddle {
+      font-size: 15px;
+      line-height: 2;
+      color: #c8c8c8;
+      margin-bottom: 3rem;
+      white-space: pre-line;
+    }
+
+    .riddle .stanza + .stanza {
+      margin-top: 1.5rem;
+    }
+
+    hr.rule {
+      border: none;
+      border-top: 1px solid #1e1e1e;
+      margin-bottom: 3rem;
+    }
+
+    .input-line {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid #333;
+      padding-bottom: 6px;
+      transition: border-color 0.2s;
+    }
+
+    .input-line:focus-within {
+      border-color: #888;
+    }
+
+    .prompt {
+      font-size: 14px;
+      color: #555;
+      user-select: none;
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
+
+    #answer {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 14px;
+      color: #e8e8e8;
+      caret-color: #e8e8e8;
+      letter-spacing: 0.05em;
+    }
+
+    #answer::placeholder {
+      color: #2a2a2a;
+    }
+
+    #submit {
+      background: transparent;
+      border: 1px solid #2a2a2a;
+      color: #555;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      padding: 4px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: border-color 0.2s, color 0.2s;
+      flex-shrink: 0;
+      margin-left: 1rem;
+    }
+
+    #submit:hover {
+      border-color: #666;
+      color: #ccc;
+    }
+
+    #submit:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .feedback {
+      margin-top: 1.5rem;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      min-height: 18px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feedback.show { opacity: 1; }
+    .feedback.wrong   { color: #666; }
+    .feedback.correct { color: #aaa; }
+
+    .attempts {
+      margin-top: 3rem;
+      font-size: 11px;
+      color: #222;
+      letter-spacing: 0.1em;
+    }
+
+    .shake {
+      animation: shake 0.35s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-5px); }
+      40%,80% { transform: translateX(5px); }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="seq">// There is no singular solution~~only branching lines of reasoning.</p>
+
+  <div class="riddle">
+    <div class="stanza">I count in primes, yet cannot add.
+I wear my grave before I'm dead.
+My voice is made of ribs, not breath —
+I sing the loudest right before my death.</div>
+    <div class="stanza">The dirt remembers what the sun forgets.
+I am the debt that every summer pays.
+You hear me, but you've never heard me.
+I leave my skin, but never leave a trace.</div>
+  </div>
+
+  <hr class="rule" />
+
+  <div class="input-line" id="input-line">
+    <span class="prompt">&gt;_</span>
+    <input type="text" id="answer" placeholder="enter answer" autocomplete="off" spellcheck="false" />
+    <button id="submit">run</button>
+  </div>
+
+  <p class="feedback" id="feedback"></p>
+  <p class="attempts" id="attempts"></p>
+
+</div>
+
+<script>
+  const ANSWER_MAP = {
+    '86c46f099cb2c6639f3fbd88b9766422fef246184275d1b2badc0c1a09d231f5': 'deadend2.html',    
+    'e77339e7563e0ed469304890e825e8f5a7bf5688bbf02590099e8bdadd69775f': 'aphex.html',        
+    '7d9ba835e72cc40109a738b2209514e409af81571d2e57937d0e39ebaef23660': 'door.html',          
+  };
+
+  let attempts = 0;
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function setFeedback(msg, type) {
+    const el = document.getElementById('feedback');
+    el.textContent = msg;
+    el.className = 'feedback show ' + type;
+  }
+
+  async function checkAnswer() {
+    const raw   = document.getElementById('answer').value;
+    const clean = raw.trim().toLowerCase();
+    if (!clean) return;
+
+    const btn = document.getElementById('submit');
+    btn.disabled = true;
+
+    const hash = await sha256(clean);
+    attempts++;
+
+    const url = ANSWER_MAP[hash];
+    if (hash in ANSWER_MAP) {
+      if (url) {
+        setFeedback('// access granted. redirecting...', 'correct');
+        setTimeout(() => { window.location.href = url; }, 1000);
+      } else {
+        setFeedback('// access granted. destination pending...', 'correct');
+        setTimeout(() => { btn.disabled = false; }, 1500);
+      }
+    } else {
+      setFeedback('// incorrect.', 'wrong');
+      const line = document.getElementById('input-line');
+      line.classList.remove('shake');
+      void line.offsetWidth;
+      line.classList.add('shake');
+      document.getElementById('attempts').textContent =
+        '// attempt ' + attempts;
+      btn.disabled = false;
+      document.getElementById('answer').select();
+    }
+  }
+
+  document.getElementById('submit').addEventListener('click', checkAnswer);
+  document.getElementById('answer').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkAnswer();
+  });
+</script>
+</body>
+</html>

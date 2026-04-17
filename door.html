@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>the door-way</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: #000;
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+      color: #888;
+    }
+
+    #bg { position: fixed; inset: 0; z-index: 0; }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse 70% 65% at 50% 50%,
+        transparent 0%,
+        rgba(0,0,0,0.5) 60%,
+        rgba(0,0,0,0.92) 100%
+      );
+      animation: breathe 7s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.6; }
+    }
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 4px,
+        rgba(0,0,0,0.08) 4px,
+        rgba(0,0,0,0.08) 5px
+      );
+    }
+    .stage {
+      position: relative;
+      z-index: 10;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 1rem 1rem;
+    }
+    .hint {
+      text-align: center;
+      margin-bottom: 1.4rem;
+      line-height: 1.9;
+    }
+
+    .hint .sub {
+      font-size: 10px;
+      color: #222;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+    }
+
+    .hint .main {
+      font-size: 12px;
+      color: #3a3a3a;
+      letter-spacing: 0.12em;
+      margin-top: 0.3rem;
+      max-width: 380px;
+      line-height: 1.7;
+    }
+
+    .hint .main .glitch-word {
+      color: #555;
+      animation: fw 4s step-end infinite;
+    }
+
+    .hint .main .idiot-glitch {
+      display: inline-block;
+      color: #555;
+      animation: fw-idiot 1.2s step-end infinite;
+    }
+
+    .hint .glyph {
+      font-size: 10px;
+      color: #1c1c1c;
+      letter-spacing: 0.2em;
+      margin-top: 0.4rem;
+    }
+
+    @keyframes fw  { 0%,100%{opacity:1} 18%{opacity:0} 19%{opacity:1} 60%{opacity:.3} 61%{opacity:1} }
+    @keyframes fw2 { 0%,100%{opacity:1} 35%{opacity:0} 36%{opacity:1} 75%{opacity:.2} 76%{opacity:1} }
+    @keyframes fw-idiot { 0%,100%{opacity:1} 8%{opacity:0} 10%{opacity:1} 24%{opacity:.1} 26%{opacity:1} 44%{opacity:0} 47%{opacity:1} 62%{opacity:.2} 64%{opacity:1} 82%{opacity:0} 84%{opacity:1} }
+
+    .door-scene {
+      position: relative;
+      width: 280px;
+      height: 380px;
+      perspective: 900px;
+    }
+
+    .door-frame {
+      position: absolute;
+      inset: -18px -18px -18px -18px;
+      border: 2px solid #111;
+      box-shadow:
+        inset 0 0 0 4px #0a0a0a,
+        0 0 40px rgba(0,0,0,0.8),
+        0 0 0 1px #0d0d0d;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .door-frame::before {
+      content: '';
+      position: absolute;
+      top: -36px; left: -2px; right: -2px;
+      height: 36px;
+      border: 2px solid #111;
+      border-bottom: none;
+      border-radius: 100px 100px 0 0;
+      box-shadow: inset 0 0 0 4px #0a0a0a;
+    }
+
+    .door-frame::after {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border: 1px solid #0d0d0d;
+    }
+
+    .door-panels {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      transform-style: preserve-3d;
+    }
+
+    .door-light {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 70% at 50% 60%,
+        rgba(255,220,150,0.06) 0%,
+        rgba(255,180,80,0.02) 40%,
+        transparent 70%
+      );
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      z-index: 0;
+    }
+
+    .door-light.open { opacity: 1; }
+
+    .panel {
+      flex: 1;
+      height: 100%;
+      background:
+        linear-gradient(180deg, #111 0%, #0d0d0d 60%, #0a0a0a 100%);
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid #1a1a1a;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      border: 1px solid #161616;
+      pointer-events: none;
+    }
+
+    .panel::after {
+      content: '';
+      position: absolute;
+      inset: 18px;
+      border: 1px solid #131313;
+      pointer-events: none;
+    }
+
+    .panel-grain {
+      position: absolute;
+      inset: 0;
+      opacity: 0.03;
+      background-image:
+        repeating-linear-gradient(
+          87deg,
+          transparent 0px, transparent 2px,
+          rgba(255,255,255,0.5) 2px, rgba(255,255,255,0.5) 3px
+        );
+      pointer-events: none;
+    }
+
+    .panel.left {
+      transform-origin: left center;
+      border-right: 1px solid #222;
+    }
+
+    .panel.right {
+      transform-origin: right center;
+      border-left: 1px solid #0a0a0a;
+    }
+
+    .door-number {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 260px;
+      text-align: center;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.6s ease;
+    }
+
+    .door-number .num-lines {
+      font-size: 17px;
+      letter-spacing: 0.16em;
+      color: #1f1f1f;
+      display: block;
+      line-height: 1.45;
+      text-shadow: 0 1px 0 #000, 0 -1px 0 #0a0a0a;
+    }
+
+    .door-number .num-lines span {
+      display: block;
+      white-space: nowrap;
+    }
+
+    .door-number.hidden {
+      opacity: 0;
+    }
+
+   
+    .knob {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      box-shadow: 0 0 4px rgba(0,0,0,0.8);
+    }
+
+    .panel.left  .knob { right:  8px; }
+    .panel.right .knob { left:   8px; }
+    .panel.left.open  { transform: rotateY(-78deg); }
+    .panel.right.open { transform: rotateY(78deg); }
+
+    .entry {
+      text-align: center;
+    }
+
+    .entry-label {
+      font-size: 10px;
+      color: #1e1e1e;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    .code-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      border-bottom: 1px solid #1e1e1e;
+      transition: border-color 0.2s;
+    }
+
+    .code-row:focus-within { border-color: #444; }
+    .code-row.wrong { border-color: #3a1010; animation: shake 0.35s ease; }
+    .code-row.correct { border-color: #1a3a1a; }
+
+    @keyframes shake {
+      0%,100%{ transform:translateX(0); }
+      20%,60%{ transform:translateX(-5px); }
+      40%,80%{ transform:translateX(5px); }
+    }
+
+    #codeInput {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 18px;
+      letter-spacing: 0.3em;
+      color: #555;
+      caret-color: #555;
+      width: 180px;
+      text-align: center;
+      padding: 6px 0;
+    }
+
+    #codeInput::placeholder { color: #1a1a1a; }
+
+    #submitBtn {
+      background: transparent;
+      border: none;
+      border-left: 1px solid #1a1a1a;
+      color: #2a2a2a;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      padding: 6px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    #submitBtn:hover { color: #555; border-left-color: #333; }
+
+    .feedback {
+      margin-top: 0.8rem;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: #1e1e1e;
+      min-height: 16px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feedback.show { opacity: 1; }
+    .feedback.wrong   { color: #3a1818; }
+    .feedback.correct { color: #1a3a1a; }
+    .corner {
+      position: fixed;
+      font-size: 10px;
+      color: #141414;
+      letter-spacing: 0.1em;
+      line-height: 1.9;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .corner.bl { bottom: 1.4rem; left: 1.5rem; }
+    .corner.tr { top: 1.4rem; right: 1.5rem; text-align: right; }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="vignette"></div>
+<div class="scanlines"></div>
+
+<div class="corner bl">
+  <div>// threshold</div>
+  <div>entry: pending</div>
+</div>
+<div class="corner tr">
+  <div>∅∅∅</div>
+  <div>do not knock</div>
+</div>
+
+<div class="stage">
+
+  <div class="hint">
+    <div class="sub">// the door remains</div>
+    <div class="main">the first was hidden in the image. the second in the sound.the internet archive has the answer</div>
+    <div class="glyph">∎ only <span class="idiot-glitch">The Idiot</span> can solve this one ∎</div>
+  </div>
+  <div class="door-scene" id="doorScene">
+    <div class="door-light" id="doorLight"></div>
+    <div class="door-frame"></div>
+    <div class="door-number">
+      <div class="num-lines" id="doorNum">
+        <span>191 rel 1 21/8/06</span>
+        <span>32-7-1</span>
+        <span>33-12-1</span>
+        <span>4-4-2</span>
+        <span>19-7-1</span>
+        <span>9-7-2</span>
+        <span>13-2-3</span>
+        <span>36-4-4</span>
+      </div>
+    </div>
+
+    <div class="door-panels">
+      <div class="panel left" id="panelL">
+        <div class="panel-grain"></div>
+        <div class="knob"></div>
+      </div>
+      <div class="panel right" id="panelR">
+        <div class="panel-grain"></div>
+        <div class="knob"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="entry" style="margin-top:1.6rem;">
+    <div class="entry-label">enter the code</div>
+    <div class="code-row" id="codeRow">
+      <input type="text" id="codeInput" placeholder="_ _ _ _" autocomplete="off" spellcheck="false" maxlength="20"/>
+      <button id="submitBtn">open</button>
+    </div>
+    <p class="feedback" id="feedback"></p>
+  </div>
+
+</div>
+
+<script>
+const ANSWER_HASH = '947c6eb898d1a582c97c910326b5e8bce0c3e5805ffd4453a672ddfcdee4ee4b';
+const REDIRECT    = 'acceptance letter.html'; 
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function setFeedback(msg, type) {
+  const el = document.getElementById('feedback');
+  el.textContent = msg;
+  el.className = 'feedback show ' + type;
+}
+
+async function tryOpen() {
+  const raw   = document.getElementById('codeInput').value;
+  const clean = raw.trim();
+  if (!clean) return;
+
+  const hash = await sha256(clean);
+  const row  = document.getElementById('codeRow');
+
+  if (hash === ANSWER_HASH) {
+    row.classList.add('correct');
+    setFeedback('// access granted', 'correct');
+    document.querySelector('.door-number').classList.add('hidden');
+
+   
+    setTimeout(() => {
+      document.getElementById('panelL').classList.add('open');
+      document.getElementById('panelR').classList.add('open');
+      document.getElementById('doorLight').classList.add('open');
+    }, 650);
+
+    
+    setTimeout(() => {
+      window.location.href = REDIRECT;
+    }, 2400);
+
+  } else {
+    row.classList.remove('wrong');
+    void row.offsetWidth;
+    row.classList.add('wrong');
+    setTimeout(() => row.classList.remove('wrong'), 400);
+    setFeedback('// denied', 'wrong');
+  }
+}
+
+document.getElementById('submitBtn').addEventListener('click', tryOpen);
+document.getElementById('codeInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryOpen();
+});
+
+
+const canvas = document.getElementById('bg');
+const ctx    = canvas.getContext('2d');
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+const COUNT = 120;
+const particles = [];
+
+function mkParticle(init) {
+  return {
+    x:     init ? Math.random() * canvas.width  : Math.random() * canvas.width,
+    y:     init ? Math.random() * canvas.height : canvas.height + 10,
+    r:     0.5 + Math.random() * 1.5,
+    alpha: 0,
+    maxA:  0.04 + Math.random() * 0.12,
+    vx:    (Math.random() - 0.5) * 0.15,
+    vy:    -(0.1 + Math.random() * 0.35),
+    life:  0,
+    maxL:  300 + Math.random() * 400,
+    flicker: Math.random() < 0.2,
+  };
+}
+
+for (let i = 0; i < COUNT; i++) particles.push(mkParticle(true));
+
+const watchers = [];
+function mkWatcher() {
+  return {
+    x:    0.2 * canvas.width + Math.random() * 0.6 * canvas.width,
+    y:    0.2 * canvas.height + Math.random() * 0.6 * canvas.height,
+    r:    60 + Math.random() * 120,
+    life: 0,
+    maxL: 500 + Math.random() * 600,
+  };
+}
+
+setInterval(() => {
+  if (watchers.length < 3) watchers.push(mkWatcher());
+}, 3000);
+
+function draw() {
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = watchers.length - 1; i >= 0; i--) {
+    const w = watchers[i];
+    w.life++;
+    const t = w.life / w.maxL;
+    const a = t < 0.3 ? (t / 0.3) : (1 - (t - 0.3) / 0.7);
+    const alpha = a * 0.018;
+
+    const grad = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.r);
+    grad.addColorStop(0,   `rgba(255,200,100,${alpha})`);
+    grad.addColorStop(0.4, `rgba(180,120,50,${alpha * 0.4})`);
+    grad.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(w.x, w.y, w.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (w.life >= w.maxL) watchers.splice(i, 1);
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life++;
+    p.x += p.vx;
+    p.y += p.vy;
+    const half = p.maxL * 0.2;
+    if (p.life < half) {
+      p.alpha = (p.life / half) * p.maxA;
+    } else {
+      p.alpha = (1 - (p.life - half) / (p.maxL - half)) * p.maxA;
+    }
+
+    let a = p.alpha;
+    if (p.flicker && Math.random() < 0.05) a *= 0.1;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    if (p.r > 1.2) {
+      ctx.fillStyle = `rgba(220,160,80,${a})`;
+    } else {
+      ctx.fillStyle = `rgba(160,160,160,${a * 0.6})`;
+    }
+    ctx.fill();
+
+    if (p.life >= p.maxL || p.y < -10) {
+      particles[i] = mkParticle(false);
+    }
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
